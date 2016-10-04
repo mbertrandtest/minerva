@@ -216,10 +216,7 @@ class WmsStyle(object):
             band_dict = {str(k): v for k, v in dict(enumerate(bands, 1)).items()}
             return 'multiband', band_dict
 
-    def get_layer_info(self):
-
-        # Create WMS instance
-        wms = WebMapService(self._base_url)
+    def get_layer_info(self, wms, auth_token):
 
         # Get the layer
         layer = wms[self._type_name]

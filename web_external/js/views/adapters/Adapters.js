@@ -380,10 +380,6 @@ minerva.rendering.geo.WmsRepresentation = minerva.rendering.geo.defineMapLayer('
                     TRANSPARENT: true,
                     SRS: projection
                 };
-                // There is a lot of repeated code here. It can be easily refactored
-                // but expecting much more complex vis options so for now keep them
-                // separate
-
                 var sld_body = null;
                 var min = null;
                 var max = null;

@@ -63,9 +63,24 @@ class WmsDataset(Dataset):
         hostName = parsedUrl.netloc
         username = params['username'] if 'username' in params else None
         password = params['password'] if 'password' in params else None
-        wms = WebMapService(baseURL, version='1.1.1',
-                            username=username,
-                            password=password)
+
+        # Authentication token
+        auth_token = None
+
+        # Remove later
+        # For testing
+        params['bsve_api'] = 'true'
+        if 'bsve_api' in params:
+            bsve_wms = "https://api-dev.bsvecosystem.net/data/v2/sources/geotiles/meta/GetCapabilities"
+            auth_token = "apikey=AK026e1166-17ea-48b3-b149-937bf47b32ab;timestamp=1475523657075;nonce=765371780;signature=cf47cc17086838f3e6ad7af3fe437fbec2aca67c"
+            wms = WebMapService(bsve_wms,
+                                version='1.1.1',
+                                headers={'harbinger-authentication': auth_token})
+        else:
+            wms = WebMapService(baseURL, version='1.1.1',
+                                username=username,
+                                password=password)
+
         layersType = list(wms.contents)
         layers = []
         source = self._sourceMetadata(username, password, baseURL, hostName)
@@ -73,23 +88,26 @@ class WmsDataset(Dataset):
 
         for layerType in layersType:
             dataset = self.createWmsDataset(source,
+                                            wms,
+                                            auth_token,
                                             params={
                                                 'typeName': layerType,
                                                 'name': wms[layerType].title,
-                                                'abstract': wms[layerType].abstract})
+                                                'abstract': wms[layerType].abstract}
+            )
 
             layers.append(dataset)
 
         return layers
 
     @access.user
-    def createWmsDataset(self, wmsSource, params):
+    def createWmsDataset(self, wmsSource, wms, auth_token, params):
         baseURL = wmsSource['wms_params']['base_url']
         parsedUrl = getUrlParts(baseURL)
         typeName = params['typeName']
 
         try:
-            layer_info = WmsStyle(typeName, baseURL).get_layer_info()
+            layer_info = WmsStyle(typeName, baseURL).get_layer_info(wms, auth_token)
         except TypeError:
             layer_info = ""
 
