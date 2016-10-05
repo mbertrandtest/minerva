@@ -17,6 +17,7 @@
 #  limitations under the License.
 ###############################################################################
 from urllib import urlencode
+from urllib import quote
 from urlparse import urlsplit, urlunsplit
 import xml.etree.ElementTree as ET
 
@@ -120,7 +121,7 @@ class WmsStyle(object):
 
         return tree
 
-    def _get_attributes(self, xml_response):
+    def _get_attributes(self, xml_response, auth_token):
         """Gets the attributes from a vectorlayer"""
 
         attributes = {}
@@ -137,7 +138,7 @@ class WmsStyle(object):
                     pass
                 else:
                     attribute['type'] = 'numeric'
-                    attribute['properties'] = self._get_min_max_count(elem.get('name'))
+                    attribute['properties'] = self._get_min_max_count(elem.get('name'), auth_token)
                     attributes[elem.get('name')] = attribute
 
         return attributes
@@ -165,13 +166,19 @@ class WmsStyle(object):
 
         return vector_type
 
-    def _get_min_max_count(self, attribute):
+    def _get_min_max_count(self, attribute, auth_token):
         """Gets the min max and count values for a given
         numeric attribute
         """
 
-        url = self._base_url.split("?")[0].replace('ows', 'wps')
-        headers = {'Content-Type': 'application/xml'}
+        if not auth_token:
+            url = self._base_url.split("?")[0].replace('ows', 'wps')
+            headers = {'Content-Type': 'application/xml'}
+        else:
+            url = "https://api-dev.bsvecosystem.net/data/v2/sources/geoprocessing/request"
+            headers = {'Content-Type': 'application/xml',
+                       'harbinger-authentication': auth_token}
+
         xml_data = wps_template(self._type_name, attribute)
         res = requests.post(url, data=xml_data, headers=headers)
         # Means wps is not activated
@@ -227,31 +234,41 @@ class WmsStyle(object):
         layer_params = {}
 
         if layer_type == 'vector':
+            if not auth_token:
+                # Generate wfs url
+                wfs_url = self._generate_url(self._base_url,
+                                             service='wfs',
+                                             request='describefeaturetype',
+                                             version='1.0.0',
+                                             typename=self._type_name)
+                wfs_response = self._get_xml_response(wfs_url)
+            else:
+                bsve_wfs = "https://api-dev.bsvecosystem.net/data/v2/sources/geofeatures/data/result?"
+                wfs_qs = quote("$filter=name eq {} and request eq describefeaturetype&$format=text/xml; subtype=gml/3.1.1".format(self._type_name),
+                               safe='=&$ ').replace(' ', '+')
+                wfs_response = requests.get(bsve_wfs + wfs_qs, headers={'harbinger-authentication': auth_token}).text
 
-            # Generate wfs url
-            wfs_url = self._generate_url(self._base_url,
-                                         service='wfs',
-                                         request='describefeaturetype',
-                                         version='1.0.0',
-                                         typename=self._type_name)
-
-            wfs_response = self._get_xml_response(wfs_url)
             layer_params['layerType'] = layer_type
-            layer_params['subType'] = self._get_vector_type(wfs_response)
-            layer_params['attributes'] = self._get_attributes(wfs_response)
+            layer_params['subType'] = self._get_vector_type(ET.fromstring(str(wfs_response)))
+            layer_params['attributes'] = self._get_attributes(ET.fromstring(str(wfs_response)), auth_token)
 
         elif layer_type == 'raster':
+            if not auth_token:
+                # Generate a wcs url
+                wcs_url = self._generate_url(self._base_url,
+                                             service='wcs',
+                                             request='describecoverage',
+                                             version='1.1.1',
+                                             identifiers=self._type_name)
+                wcs_response = self._get_xml_response(wcs_url)
+            else:
+                bsve_wcs = "https://api-dev.bsvecosystem.net/data/v2/sources/geocoverage/data/result?"
+                wcs_qs = quote("$filter=identifiers eq {}".format(self._type_name), safe='=&$ ').replace(' ', '+')
+                wcs_response = requests.get(bsve_wcs + wcs_qs, headers={'harbinger-authentication': auth_token}).text
+
+
             layer_params['layerType'] = layer_type
-
-            # Generate a wcs url
-            wcs_url = self._generate_url(self._base_url,
-                                         service='wcs',
-                                         request='describecoverage',
-                                         version='1.1.1',
-                                         identifiers=self._type_name)
-
-            wcs_response = self._get_xml_response(wcs_url)
-            sub_type, bands = self._get_bands(wcs_response)
+            sub_type, bands = self._get_bands(ET.fromstring(str(wcs_response)))
             layer_params['bands'] = bands
             layer_params['subType'] = sub_type
 
