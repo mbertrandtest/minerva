@@ -11,6 +11,9 @@ minerva.views.DataPanel = minerva.views.Panel.extend({
         'click .source-title': 'toggleDatasets',
         'click .m-configure-wms-styling': 'styleWmsDataset'
     },
+    getDatasetModel: function () {
+        return this.parentView.parentView.model;
+    },
     toggleDatasets: function (event) {
         var listOfLayers = $(event.currentTarget).next();
 
@@ -18,10 +21,16 @@ minerva.views.DataPanel = minerva.views.Panel.extend({
             listOfLayers.css('display', 'block');
             this.visibleSourceGroups[$(event.currentTarget).text()] = true;
             $(event.currentTarget).find('i.icon-folder').attr('class', 'icon-folder-open');
+            this.getDatasetModel().addLayoutAttributes(event.target.id, {
+                closed: false
+            });
         } else {
             listOfLayers.css('display', 'none');
             this.visibleSourceGroups[$(event.currentTarget).text()] = false;
             $(event.currentTarget).find('i.icon-folder-open').attr('class', 'icon-folder');
+            this.getDatasetModel().addLayoutAttributes(event.target.id, {
+                closed: true
+            });
         }
     },
     addWmsDataset: function (event) {
@@ -294,6 +303,17 @@ minerva.views.DataPanel = minerva.views.Panel.extend({
             visibleSourceGroups: this.visibleSourceGroups,
             sourceNames: _.keys(this.sourceDataset).sort(girder.localeSort)
         }));
+
+        var model = this.getDatasetModel();
+
+        // Restore state of collapsed sources
+        if (_.has(model.metadata(), 'layout')) {
+            _.each(model.metadata().layout, function (source, sourceId) {
+                if (_.has(source, 'closed') && source.closed === false) {
+                    $('#' + sourceId).find('i.icon-folder').toggleClass('icon-folder icon-folder-open');
+                }
+            }, this);
+        }
 
         // TODO pagination and search?
         return this;
