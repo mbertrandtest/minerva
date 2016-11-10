@@ -36,14 +36,16 @@ before_install:
     - git clone https://github.com/girder/girder.git
     - cd girder
     - git checkout `cat $TRAVIS_BUILD_DIR/.girder-version`
-    - cd $HOME/build
-    - mv mbertrandtest/minerva girder/plugins
-    - cp girder/plugins/minerva/server/conf/minerva.dist.cfg girder/plugins/minerva/server/conf/minerva.local.cfg
 
-    - cd girder
+    - cd plugins
+    - git clone https://github.com/Kitware/minerva.git
+
+
     # copy the placeholder bsve credentials, needed even though we mock bsve api calls
     - cp plugins/minerva/server/jobs/bsve.json.in plugins/minerva/server/jobs/bsve.json
+    - cp plugins/minerva/server/conf/minerva.dist.cfg plugins/minerva/server/conf/minerva.local.cfg
 
+    - cd $HOME/build
     # Show the memory state; this lets us more quickly determine when the
     # travis environment is bad
     - vmstat
@@ -72,7 +74,7 @@ install:
     - mkdir _build
     - export GIRDER_SOURCE_DIR="$PWD"
     - export GIRDER_BUILD_DIR="$PWD/_build"
-    - pip install -r "${GIRDER_SOURCE_DIR}/plugins/minerva/cmake/travis-pip-freeze.txt" -U
+    #- pip install -r "${GIRDER_SOURCE_DIR}/plugins/minerva/cmake/travis-pip-freeze.txt" -U
 
     - cd /home/travis/build/girder
     # handle caching of npm modules
