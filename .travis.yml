@@ -42,8 +42,8 @@ before_install:
 
 
     # copy the placeholder bsve credentials, needed even though we mock bsve api calls
-    - cp minerva/server/jobs/bsve.json.in plugins/minerva/server/jobs/bsve.json
-    - cp minerva/server/conf/minerva.dist.cfg plugins/minerva/server/conf/minerva.local.cfg
+    - cp minerva/server/jobs/bsve.json.in minerva/server/jobs/bsve.json
+    - cp minerva/server/conf/minerva.dist.cfg minerva/server/conf/minerva.local.cfg
 
     - cd $HOME/build
     # Show the memory state; this lets us more quickly determine when the
