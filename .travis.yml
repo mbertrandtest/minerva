@@ -37,7 +37,7 @@ before_install:
     - cd girder
     - git checkout `cat $TRAVIS_BUILD_DIR/.girder-version`
     - cd $HOME/build
-    - mv Kitware/minerva girder/plugins
+    - mv mbertrandtest/minerva girder/plugins
     - cp girder/plugins/minerva/server/conf/minerva.dist.cfg girder/plugins/minerva/server/conf/minerva.local.cfg
 
     - cd girder
